@@ -1,26 +1,7 @@
-# BlenderProc2
 
-[![Documentation](https://img.shields.io/badge/documentation-passing-brightgreen.svg)](https://dlr-rm.github.io/BlenderProc/)
-[![Open In Collab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-RM/BlenderProc/blob/main/examples/basics/basic/basic_example.ipynb)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+# 3D-FRONT Processing Pipeline
 
-<p align="center">
-<img src="https://user-images.githubusercontent.com/6104887/137109535-275a2aa3-f5fd-4173-9d16-a9a9b86f66e7.gif" alt="Front readme image" width=100%>
-</p>
-
-A procedural Blender pipeline for photorealistic rendering.
-
-[Documentation](https://dlr-rm.github.io/BlenderProc) | [Tutorials](#tutorials) | [Examples](#examples) | [ArXiv paper](https://arxiv.org/abs/1911.01911) | [Workshop paper](https://sim2real.github.io/assets/papers/2020/denninger.pdf) | [JOSS article](https://joss.theoj.org/papers/10.21105/joss.04901)
-
-## Features
-
-* Loading: `*.obj`, `*.ply`, `*.blend`, `*.fbx`, BOP, ShapeNet, Haven, 3D-FRONT, etc.
-* Objects: Set or sample object poses, apply physics and collision checking.
-* Materials: Set or sample physically-based materials and textures
-* Lighting: Set or sample lights, automatic lighting of 3D-FRONT scenes.
-* Cameras: Set, sample or load camera poses from file.
-* Rendering: RGB, stereo, depth, normal and segmentation images/sequences.
-* Writing: .hdf5 containers, COCO & BOP annotations.
+This repository provides Python scripts for automatic reconstruction of 3D-FRONT scenes with spiral camera trajectories, leveraging `BlenderProc`.
 
 
 ## Installation
@@ -34,13 +15,6 @@ pip install blenderproc
 ```
 
 ### Via git
-
-Alternatively, if you need to make changes to blenderproc or you want to make use of the most recent version on the main-branch, clone the repository:
-
-```bash
-git clone https://github.com/DLR-RM/BlenderProc
-```
-
 To still make use of the blenderproc command and therefore use blenderproc anywhere on your system, make a local pip installation:
 
 ```bash
@@ -48,203 +22,67 @@ cd BlenderProc
 pip install -e .
 ```
 
-## Usage
 
-BlenderProc has to be run inside the blender python environment, as only there we can access the blender API. 
-Therefore, instead of running your script with the usual python interpreter, the command line interface of BlenderProc has to be used.
+## Download Required Datasets
+The following datasets are essential for this pipeline:
 
-```bash
-blenderproc run <your_python_script>
-```
+1. **3D-FRONT and 3D-FUTURE**  
+   Download the 3D-FRONT dataset by following these steps:
+   - Visit the official [3D-FRONT website](https://tianchi.aliyun.com/specials/promotion/alibaba-3d-scene-dataset) and register for an account.
+   - After logging in, you can download the 3d-FRONT dataset, which includes 3D room layouts in `.json` format and unzip the files (e.g., `3D-FRONT/`).
+   - Download the furniture models and unzip them (e.g., `3D-FUTURE-model/`).
 
-In general, one run of your script first loads or constructs a 3D scene, then sets some camera poses inside this scene and renders different types of images (RGB, distance, semantic segmentation, etc.) for each of those camera poses.
-Usually, you will run your script multiple times, each time producing a new scene and rendering e.g. 5-20 images from it.
-With a little more experience, it is also possible to change scenes during a single script call, read [here](docs/tutorials/key_frames.md#render-multiple-times) how this is done.
+2. **CCTextures**  
+   Download high-quality textures from CCTextures using BlenderProc's `download_cc_textures.py` at  `BlenderProc/examples/scripts`:
+   - Replace `path_to_cctextures/` with the directory where you want to save the textures.
 
-## Quickstart
-
-You can test your BlenderProc pip installation by running
-
-```bash
-blenderproc quickstart
-```
-
-This is an alias to `blenderproc run quickstart.py` where `quickstart.py` is:
-
-```python
-import blenderproc as bproc
-import numpy as np
-
-bproc.init()
-
-# Create a simple object:
-obj = bproc.object.create_primitive("MONKEY")
-
-# Create a point light next to it
-light = bproc.types.Light()
-light.set_location([2, -2, 0])
-light.set_energy(300)
-
-# Set the camera to be in front of the object
-cam_pose = bproc.math.build_transformation_mat([0, -5, 0], [np.pi / 2, 0, 0])
-bproc.camera.add_camera_pose(cam_pose)
-
-# Render the scene
-data = bproc.renderer.render()
-
-# Write the rendering into an hdf5 file
-bproc.writer.write_hdf5("output/", data)
-```
-
-BlenderProc creates the specified scene and renders the image into `output/0.hdf5`.
-To visualize that image, simply call:
-
-```bash
-blenderproc vis hdf5 output/0.hdf5
-```
-
-Thats it! You rendered your first image with BlenderProc!
-
-### Debugging in the Blender GUI
-
-To understand what is actually going on, BlenderProc has the great feature of visualizing everything inside the blender UI.
-To do so, simply call your script with the `debug` instead of `run` subcommand:
-```bash
-blenderproc debug quickstart.py
-```
-*Make sure that `quickstart.py` actually exists in your working directory.*
-
-Now the Blender UI opens up, the scripting tab is selected and the correct script is loaded.
-To start the BlenderProc pipeline, one now just has to press `Run BlenderProc` (see red circle in image).
-As in the normal mode, print statements are still printed to the terminal.
-
-<p align="center">
-<img src="images/debug.jpg" alt="Front readme image" width=500>
-</p>
-
-The pipeline can be run multiple times, as in the beginning of each run the scene is cleared.
-
-### Breakpoint-Debugging in IDEs
-
-As blenderproc runs in blenders separate python environment, debugging your blenderproc script cannot be done in the same way as with any other python script.
-Therefore, remote debugging is necessary, which is explained for vscode and PyCharm in the following:
-
-#### Debugging with vscode
-
-First, install the `debugpy` package in blenders python environment.
-
-```
-blenderproc pip install debugpy
-```
-
-Now add the following configuration to your vscode [launch.json](https://code.visualstudio.com/docs/python/debugging#_initialize-configurations).
-
-```json
-{                        
-    "name": "Attach",
-    "type": "python",
-    "request": "attach",
-    "connect": {
-        "host": "localhost",
-        "port": 5678
-    }
-}
-```
-
-Finally, add the following lines to the top (after the imports) of your blenderproc script which you want to debug.
-
-```python
-import debugpy
-debugpy.listen(5678)
-debugpy.wait_for_client()
-```
-
-Now run your blenderproc script as usual via the CLI and then start the added "Attach" configuration in vscode.
-You are now able to add breakpoints and go through the execution step by step.
-
-#### Debugging with PyCharm Professional
-
-In Pycharm, go to `Edit configurations...` and create a [new configuration](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html#remote-debug-config) based on `Python Debug Server`.
-The configuration will show you, specifically for your version, which pip package to install and which code to add into the script.
-The following assumes Pycharm 2021.3:
-
-First, install the `pydevd-pycharm` package in blenders python environment.
-
-```
-blenderproc pip install pydevd-pycharm~=212.5457.59
-```
-
-Now, add the following code to the top (after the imports) of your blenderproc script which you want to debug.
-
-```python
-import pydevd_pycharm
-pydevd_pycharm.settrace('localhost', port=12345, stdoutToServer=True, stderrToServer=True)
-```
-
-Then, first run your `Python Debug Server` configuration in PyCharm and then run your blenderproc script as usual via the CLI.
-PyCharm should then go in debug mode, blocking the next code line.
-You are now able to add breakpoints and go through the execution step by step.
-
-## What to do next?
-
-As you now ran your first BlenderProc script, your ready to learn the basics:
-
-### Tutorials
-
-Read through the tutorials, to get to know with the basic principles of how BlenderProc is used:
-
-1. [Loading and manipulating objects](docs/tutorials/loader.md)
-2. [Configuring the camera](docs/tutorials/camera.md)
-3. [Rendering the scene](docs/tutorials/renderer.md)
-4. [Writing the results to file](docs/tutorials/writer.md)
-5. [How key frames work](docs/tutorials/key_frames.md)
-6. [Positioning objects via the physics simulator](docs/tutorials/physics.md)
-
-### Examples
-
-We provide a lot of [examples](examples/README.md) which explain all features in detail and should help you understand how BlenderProc works. Exploring our examples is the best way to learn about what you can do with BlenderProc. We also provide support for some datasets.
-
-* [Basic scene](examples/basics/basic/README.md): Basic example, this is the ideal place to start for beginners
-* [Camera sampling](examples/basics/camera_sampling/README.md): Sampling of different camera positions inside of a shape with constraints for the rotation.
-* [Object manipulation](examples/basics/entity_manipulation/README.md): Changing various parameters of objects.
-* [Material manipulation](examples/basics/material_manipulation/README.md): Material selecting and manipulation.
-* [Physics positioning](examples/basics/physics_positioning/README.md): Enabling simple simulated physical interactions between objects in the scene.
-* [Semantic segmentation](examples/basics/semantic_segmentation/README.md): Generating semantic segmentation labels for a given scene.
-* [BOP Challenge](README_BlenderProc4BOP.md): Generate the pose-annotated data used at the BOP Challenge 2020
-* [COCO annotations](examples/advanced/coco_annotations/README.md): Write COCO annotations to a .json file for selected objects in the scene.
-
-and much more, see our [examples](examples/README.md) for more details.
+    
+## Reconstruction Pipeline
 
 
-## Contributions
+1. Automatically create camera trajectories for each room defined in a 3D-FRONT scene config `.json` file. 
+   Generates spiral trajectories based on 3D bounding boxes from JSON scene files.
+   - **Usage**: 
+     ```bash
+     python extract_traj_from_json.py --input_file json_file.txt --base_path 3D-FRONT/ --global_txt_file generated_configs.txt --output_dir configs
+     ```
+   - **Arguments**:
+     - `--input_file`: Path to the JSON or text file with multiple JSON paths.
+     - `--base_path`: Directory prefix for JSON paths.
+     - `--global_txt_file`: Output text file to store generated paths.
+     - `--output_dir`: Directory to save generated configs.
 
-Found a bug? help us by reporting it. Want a new feature in the next BlenderProc release? Create an issue. Made something useful or fixed a bug? Start a PR. Check the [contributions guidelines](CONTRIBUTING.md).
+   
+2. (Optional) For each 3D-FRONT scene extract geometry as `.ply` in order to use the `--visualize` option in the next steps.
+   - **Usage**:
+     ```bash
+     python extract_geom.py --json_list_file json_files.txt --json_dir 3D-FRONT/ --future_model_dir 3D-FUTURE-model/ --resources_dir path_to_cctextures --blenderproc_script "examples/datasets/front_3d_with_improved_mat/geom.py" --output_dir "scenes"
+     ```
+   - **Arguments**:
+     - `--json_list_file`: Path to the JSON or text file with multiple JSON paths.
+     - `--json_dir`: Directory for JSON files.
+     - `--future_model_dir`: Directory for 3D-FUTURE models.
+     - `--resources_dir`: Path to CCTextures.
+     - `--blenderproc_script`: BlenderProc script path.
+     - `--output_dir`: Directory to save processed scenes.
 
-## Change log
+    
+3. Run reconstruction pipeline to render RGB and depth images for precomputed camera trajectory and create sparse reconstruction in COLMAP format.
+   - **Usage**:
+     ```bash
+     python pipeline.py generated_configs.txt --front_path 3D-FRONT/ --future_path 3D-FUTURE-model/ --resources_path path_to_cctextures --scenes_path scenes
+     ```
+   - **Arguments**:
+     - `--config_path`: Path to the JSON or text file with multiple JSON paths.
+     - `--visualize`: Optional; add to enable visualization during spiral generation.
+     - `--front_path`, `--future_path`, `--resources_path`, `--scenes_path`: Paths to respective 3D-FRONT, 3D-FUTURE, resources, and scenes directories.
 
-See our [change log](change_log.md). 
-
-## Citation 
-
-If you use BlenderProc in a research project, please cite as follows:
-
-```
-@article{Denninger2023, 
-    doi = {10.21105/joss.04901},
-    url = {https://doi.org/10.21105/joss.04901},
-    year = {2023},
-    publisher = {The Open Journal}, 
-    volume = {8},
-    number = {82},
-    pages = {4901}, 
-    author = {Maximilian Denninger and Dominik Winkelbauer and Martin Sundermeyer and Wout Boerdijk and Markus Knauer and Klaus H. Strobl and Matthias Humt and Rudolph Triebel},
-    title = {BlenderProc2: A Procedural Pipeline for Photorealistic Rendering}, 
-    journal = {Journal of Open Source Software}
-} 
-```
-
----
-
-<div align="center">
-  <a href="https://www.dlr.de/EN/Home/home_node.html"><img src="images/logo.svg" hspace="3%" vspace="60px"></a>
-</div>
+    
+4. Given the image sets rendered in the previous step, create a low quality reconstruction of the same room using an eight of the full image set.
+   - **Usage**:
+     ```bash
+     python pipeline_oct.py scene_paths.txt --front_path 3D-FRONT/ --future_path 3D-FUTURE-model/ --resources_path path_to_cctextures --scenes_path scenes
+     ```
+   - **Arguments**:
+     - `--scene_path`: Path to a single scene directory or a `.txt` file listing scene directories.
+     - `--front_path`, `--future_path`, `--resources_path`, `--scenes_path`: Paths to respective 3D-FRONT, 3D-FUTURE, resources, and scenes directories.
