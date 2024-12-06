@@ -39,17 +39,17 @@ def generate_spiral_params_outside(child_pos,a=0.0005, b=0.01, angle_range=(15, 
         "downward_angle_range": [angle_range[0], angle_range[1]],
     }
 
-def generate_spiral_params_inside(child_pos, a):
+def generate_spiral_params_inside(child_pos, a, num_samples=50, theta=11.7):
     return {
         "a": a,
-        "b": 0.03,
-        "theta_max": 11.7,
-        "num_samples": 50,
+        "b": 0.05,
+        "theta_max": theta,
+        "num_samples": num_samples,
         "x0": child_pos[0],
         "y0": child_pos[2],
         "z0": child_pos[1],
         "z_step": 0.3,
-        "downward_angle_range": [15, 40]
+        "downward_angle_range": [15, 60]
     }
 
 def calculate_room_bounding_boxes(data):
@@ -156,19 +156,24 @@ def calculate_room_bounding_boxes(data):
 
         print([min_x, min_y, min_z], [max_x, max_y, max_z])
 
-        spiral_params_inside = generate_spiral_params_inside([middle_x, middle_z, middle_y], 0.2 * min(np.abs(min_x - max_x), np.abs(min_y - max_y)))
+        spiral_params_inside = generate_spiral_params_inside([middle_x, middle_z, middle_y], 0.2 * min(np.abs(min_x - max_x), np.abs(min_y - max_y)), num_samples=80, theta=5*np.pi)
         inside_spirals.append(spiral_params_inside)
 
-        spiral_up_middle = generate_spiral_params_outside([middle_x, middle_z, middle_y], a=0.05 * min(np.abs(min_x - max_x), np.abs(min_y - max_y)),b=0.01, angle_range=[-5, -20], num_samples=20, theta=7)
+        spiral_up_middle = generate_spiral_params_outside([middle_x, middle_z, middle_y], a=0.05 * min(np.abs(min_x - max_x), np.abs(min_y - max_y)),b=0.01, angle_range=[-10, -35], num_samples=20, theta=5*np.pi)
         outside_spirals.append(spiral_up_middle)
+
+        spiral_down_middle = generate_spiral_params_outside([middle_x, 1.2, middle_y],
+                                                          a=0.05 * min(np.abs(min_x - max_x), np.abs(min_y - max_y)),
+                                                          b=0.01, angle_range=[10, 55], num_samples=40, theta=5 * np.pi)
+        outside_spirals.append(spiral_down_middle)
 
         width = max_x - min_x
         height = max_y - min_y
         depth = max_z - min_z
 
-        small_width = 0.55 * width
-        small_height = 0.55 * height
-        small_depth = 0.55 * depth
+        small_width = 0.4 * width
+        small_height = 0.4 * height
+        small_depth = 0.4 * depth
 
         offset_x = (width - small_width) / 2
         offset_y = (height - small_height) / 2
@@ -181,10 +186,10 @@ def calculate_room_bounding_boxes(data):
         small_min_z = min_z + offset_z
         small_max_z = max_z - offset_z
 
-        corner1 = (small_min_x, 0.9, small_min_y)
-        corner2 = (small_max_x, 0.9, small_min_y)
-        corner3 = (small_min_x, 0.9, small_max_y)
-        corner4 = (small_max_x, 0.9, small_max_y)
+        corner1 = (small_min_x, 1.1, small_min_y)
+        corner2 = (small_max_x, 1.1, small_min_y)
+        corner3 = (small_min_x, 1.1, small_max_y)
+        corner4 = (small_max_x, 1.1, small_max_y)
 
         corners = [corner1, corner2, corner3, corner4]
         print('covered_room', covered_room)
@@ -194,7 +199,7 @@ def calculate_room_bounding_boxes(data):
             if check:
                 print('Corner in bounding box\n')
                 continue
-            spiral_params_outside = generate_spiral_params_outside(corner, b=0.01)
+            spiral_params_outside = generate_spiral_params_outside(corner, b=0.01, angle_range=[0, -15])
             outside_spirals.append(spiral_params_outside)
 
         random_count = 0
@@ -203,10 +208,10 @@ def calculate_room_bounding_boxes(data):
             x = random.uniform(small_min_x, small_max_x)
             y = random.uniform(small_min_y, small_max_y)
             point = (x, 0.2, y )
-            check = any([is_point_inside_bounding_box(point, r, margin=0.4) for r in covered_room_low])
+            check = any([is_point_inside_bounding_box(point, r, margin=0.1) for r in covered_room_low])
             if not check:
-                random_spiral = generate_spiral_params_outside(point, b=0.01, angle_range=[-5, -20], num_samples=20,)
-                covered_room_low.append((point[0]-0.4,point[1]-0.4,point[2]-0.4, point[0]+0.4, point[1]+0.4, point[2]+0.4))
+                random_spiral = generate_spiral_params_outside(point, b=0.01, angle_range=[-5, -30], num_samples=20,)
+                covered_room_low.append((point[0]-0.4,point[1]-0.1,point[2]-0.1, point[0]+0.1, point[1]+0.1, point[2]+0.1))
                 outside_spirals.append(random_spiral)
                 random_count += 1
             tries += 1

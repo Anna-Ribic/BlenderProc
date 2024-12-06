@@ -130,6 +130,43 @@ def generate_heatmap_gradient(num_samples):
     return interpolated_colors
 
 
+def get_lower_80_percent(mesh):
+    # Convert mesh vertices to numpy array
+    vertices = np.asarray(mesh.vertices)
+
+    # Find the height range (z-axis values)
+    min_z = np.min(vertices[:, 2])
+    max_z = np.max(vertices[:, 2])
+
+    # Calculate the threshold for the lower 80% of height
+    z_threshold = min_z + 0.8 * (max_z - min_z)
+
+    # Filter vertices to keep only those below the threshold
+    mask = vertices[:, 2] <= z_threshold
+    filtered_indices = np.where(mask)[0]
+    filtered_vertices = vertices[mask]
+
+    # Create a mapping from old vertex indices to new indices
+    index_mapping = {old_idx: new_idx for new_idx, old_idx in enumerate(filtered_indices)}
+
+    # Find the faces that are connected to the remaining vertices
+    faces = np.asarray(mesh.triangles)
+    filtered_faces = []
+    for face in faces:
+        if all(vertex in index_mapping for vertex in face):
+            new_face = [index_mapping[vertex] for vertex in face]
+            filtered_faces.append(new_face)
+
+    # Create a new mesh with the filtered vertices and faces
+    new_mesh = o3d.geometry.TriangleMesh()
+    new_mesh.vertices = o3d.utility.Vector3dVector(filtered_vertices)
+    new_mesh.triangles = o3d.utility.Vector3iVector(filtered_faces)
+
+    # Estimate normals for the new mesh
+    new_mesh.compute_vertex_normals()
+    return new_mesh
+
+
 def main(config_file, output_dir, visualize):
     with open(config_file, 'r') as file:
         config = json.load(file)
@@ -211,8 +248,8 @@ def main(config_file, output_dir, visualize):
 
     if visualize:
 
-
-        existing_mesh = o3d.io.read_triangle_mesh(os.path.join('scenes', unique_id, 'geom_wo_ceil.ply'))
+        existing_mesh = o3d.io.read_triangle_mesh(os.path.join('scenes', unique_id, 'geom.ply'))
+        existing_mesh = get_lower_80_percent(existing_mesh)
         combined_geometry.append(existing_mesh)
 
         o3d.visualization.draw_geometries(combined_geometry, point_show_normal=True, mesh_show_wireframe=True)

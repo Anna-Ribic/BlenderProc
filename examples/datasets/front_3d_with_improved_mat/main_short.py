@@ -216,7 +216,7 @@ K[1, 2] = 184.5
 print(K)
 bproc.camera.set_intrinsics_from_K_matrix(K, 369, 369)
 
-proximity_checks = {"min": 0.25, "avg": {"min": 0.25, "max": 12.5}, "no_background": False}
+proximity_checks = {"min": 0.30}#, "avg": {"min": 0.00, "max": 1000.5}, "no_background": False}
 
 pose_init = pose_files[0]
 
@@ -236,13 +236,15 @@ for pose in pose_files:    # Sample point inside house
 
     #print('Scene coverage score', bproc.camera.scene_coverage_score(cam2world_matrix, special_objects, special_objects_weight=10.0) )
     #print('obstacke check', bproc.camera.perform_obstacle_in_view_check(cam2world_matrix, proximity_checks, bvh_tree))
-    if bproc.camera.scene_coverage_score(cam2world_matrix, special_objects, special_objects_weight=10.0) > 0.01 :
-        print('Pose added to valid poses')
+    if bproc.camera.scene_coverage_score(cam2world_matrix, special_objects, special_objects_weight=10.0) > 0.01 and bproc.camera.perform_obstacle_in_view_check(cam2world_matrix, proximity_checks, bvh_tree) :
+        print(f'Pose added to valid poses as pose {pose_count} count')
         shutil.copy(pose, os.path.join(poses_tmp_dir, str(pose_count) + '.txt'))
         bproc.camera.add_camera_pose(cam2world_matrix)
         pose_count += 1
     else:
         print('Pose invalid')
+
+
 
 os.rename(directory_path, os.path.join(master_bedroom_path, 'poses_full'))
 print('Renamed directory', directory_path, 'to: ', os.path.join(master_bedroom_path, 'poses_full'))

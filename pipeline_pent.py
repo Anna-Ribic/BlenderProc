@@ -26,7 +26,7 @@ def create_directories(input_path):
         print(f"The provided path '{input_path}' must contain both 'images' and 'poses' directories.")
         return
 
-    new_directory_path = input_path.rstrip('/') + '_oct'
+    new_directory_path = input_path.rstrip('/') + '_pent'
     new_images_path = os.path.join(new_directory_path, 'images')
     new_poses_path = os.path.join(new_directory_path, 'poses')
     new_renders_path = os.path.join(new_directory_path, 'renders')
@@ -43,8 +43,8 @@ def create_directories(input_path):
         print("Number of images and poses do not match!")
         return
 
-    for i in range(0, len(images_files), 8):
-        new_index = i // 8
+    for i in range(0, len(images_files), 5):
+        new_index = i // 5
         new_image_filename = f"{new_index}.png"
         new_pose_filename = f"{new_index + 1}.txt"
 
@@ -87,7 +87,7 @@ def process_scene(scene_path):
     path_parts = scene_path.split('/')
     scene_name = path_parts[-2]
     room_name = path_parts[-1]
-    room_name_oct = room_name + '_oct'
+    room_name_oct = room_name + '_pent'
 
     print(f"Processing scene '{scene_name}/{room_name_oct}'")
 
